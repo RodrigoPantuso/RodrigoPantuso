@@ -534,7 +534,7 @@ if latest_df.empty:
 funds = sorted(latest_df["Fondo"].unique().tolist())
 col_a, col_b, col_c = st.columns([2, 2, 2])
 with col_a:
-    selected_fund = st.selectbox("Choose fund", funds, index=0)
+    selected_fund = st.selectbox("Fondo", funds, index=0)
 with col_b:
     last_date = latest_df.loc[latest_df["Fondo"] == selected_fund, "Fecha Act"].iloc[0]
     st.markdown(
@@ -566,17 +566,17 @@ st.markdown("### Fund Snapshot")
 k1, k2, k3 = st.columns(3)
 with k1:
     render_kpi(
-        "Starting NAV",
+        "SumaDeBEGINNER NAV",
         format_money(selected_latest.get("SumaDeBEGINNER NAV")),
     )
 with k2:
     render_kpi(
-        "Net Liquid Value",
+        "SumaDeNET LIQUID VALUE",
         format_money(selected_latest.get("SumaDeNET LIQUID VALUE")),
     )
 with k3:
     render_kpi(
-        "Cash Position",
+        "SumaDeCASH NAV",
         format_money(selected_latest.get("SumaDeCASH NAV")),
     )
 
@@ -584,17 +584,17 @@ render_spacer()
 k4, k5, k6 = st.columns(3)
 with k4:
     render_kpi(
-        "Close Trades (Sum)",
+        "SumaDeCLOSE TRADE",
         format_money(selected_latest.get("SumaDeCLOSE TRADE")),
     )
 with k5:
     render_kpi(
-        "Available Free Cash",
+        "SumaDeFREE CASH",
         format_money(selected_latest.get("SumaDeFREE CASH")),
     )
 with k6:
     render_kpi(
-        "Close Trades (Gross)",
+        "CloseTrade_BRUTO",
         format_money(selected_latest.get("CloseTrade_BRUTO")),
     )
 
@@ -629,22 +629,8 @@ if "Fecha Act" in pretty.columns:
 for col in [x for x in existing if x in NUMERIC_COLS]:
     pretty[col] = pretty[col].apply(lambda v: f"{v:,.0f}" if pd.notna(v) else "")
 
-display_names = {
-    "Fondo": "Fund",
-    "Fecha Act": "Date",
-    "SumaDeBEGINNER NAV": "Starting NAV",
-    "SumaDeCLOSE TRADE": "Close Trades (Sum)",
-    "CloseTrade_BRUTO": "Close Trades (Gross)",
-    "SumaDeNET LIQUID VALUE": "Net Liquid Value",
-    "SumaDeCASH NAV": "Cash NAV",
-    "SumaDeFREE CASH": "Free Cash",
-    "SumaDeOPEN CASH FLOW": "Open Cash Flow",
-    "SumaDeTRADING": "Trading",
-    "SumaDeLIQUIDACION": "Liquidation",
-}
-
 st.dataframe(
-    pretty[existing].sort_values("Fondo").rename(columns=display_names),
+    pretty[existing].sort_values("Fondo"),
     use_container_width=True,
     hide_index=True,
 )
@@ -665,14 +651,14 @@ df_f = df_f.tail(n_weeks)
 c1, c2 = st.columns(2)
 
 with c1:
-    st.markdown("**Net Liquid Value**")
+    st.markdown("**SumaDeNET LIQUID VALUE**")
     if "SumaDeNET LIQUID VALUE" in df_f.columns:
         st.line_chart(df_f.set_index("Fecha Act")["SumaDeNET LIQUID VALUE"])
     else:
         st.info("Column 'SumaDeNET LIQUID VALUE' is not available for this fund.")
 
 with c2:
-    st.markdown("**Cash vs Free Cash**")
+    st.markdown("**SumaDeCASH NAV vs SumaDeFREE CASH**")
     cols = []
     if "SumaDeCASH NAV" in df_f.columns:
         cols.append("SumaDeCASH NAV")
