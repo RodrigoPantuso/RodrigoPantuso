@@ -14,15 +14,16 @@ Dashboard en Streamlit para cargar Excel/CSV de fondos, publicar un dataset y co
 
 ## Seguridad (admin para publicar)
 
-La app lee la password de admin desde:
+La app usa credenciales de admin:
 
-1. `st.secrets["ADMIN_PASSWORD"]` (recomendado en Streamlit Cloud)
-2. variable de entorno `FUNDS_ADMIN_PASSWORD`
+1. Usuario: `st.secrets["ADMIN_USERNAME"]` o variable `FUNDS_ADMIN_USERNAME` (por defecto: `admin`)
+2. Password: `st.secrets["ADMIN_PASSWORD"]` o variable `FUNDS_ADMIN_PASSWORD` (por defecto: `FundsAdmin_2026!`)
 
 Ejemplo local (no se versiona):
 
 ```toml
 # .streamlit/secrets.toml
+ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "tu-password-segura"
 ```
 
@@ -39,6 +40,7 @@ El archivo real `.streamlit/secrets.toml` está ignorado en git.
 4. En `Advanced settings -> Secrets` agrega:
 
 ```toml
+ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "tu-password-segura"
 ```
 
@@ -46,7 +48,7 @@ ADMIN_PASSWORD = "tu-password-segura"
 
 ## Flujo de uso
 
-1. Entras como admin con password.
+1. Entras como admin con usuario + password.
 2. Subes tus archivos y pulsas `Publicar dataset`.
 3. Compartes el link: otros usuarios solo ven el dashboard publicado.
 

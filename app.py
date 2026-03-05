@@ -145,10 +145,24 @@ FUND_ALIASES = {
     "INS": "INSTITUTE",
 }
 
+DEFAULT_ADMIN_USERNAME = "admin"
+DEFAULT_ADMIN_PASSWORD = "FundsAdmin_2026!"
+
 
 # -----------------------------
 # Helpers
 # -----------------------------
+def get_admin_username() -> str:
+    username = ""
+    try:
+        username = str(st.secrets.get("ADMIN_USERNAME", ""))
+    except Exception:
+        username = ""
+    if not username:
+        username = os.getenv("FUNDS_ADMIN_USERNAME", DEFAULT_ADMIN_USERNAME)
+    return username.strip() or DEFAULT_ADMIN_USERNAME
+
+
 def get_admin_password() -> str:
     password = ""
     try:
@@ -157,7 +171,9 @@ def get_admin_password() -> str:
         password = ""
     if not password:
         password = os.getenv("FUNDS_ADMIN_PASSWORD", "")
-    return password.strip()
+    if not password:
+        password = DEFAULT_ADMIN_PASSWORD
+    return password.strip() or DEFAULT_ADMIN_PASSWORD
 
 
 def format_money(x) -> str:
@@ -417,6 +433,7 @@ st.markdown(
 # -----------------------------
 # Sidebar - Auth / Publish / View
 # -----------------------------
+admin_username = get_admin_username()
 admin_password = get_admin_password()
 admin_auth_enabled = bool(admin_password)
 is_admin = st.session_state.get("is_admin", False)
@@ -436,13 +453,17 @@ with st.sidebar:
                     st.session_state["is_admin"] = False
                     st.rerun()
             else:
-                candidate = st.text_input("Admin password", type="password")
+                candidate_user = st.text_input("Admin user", value="")
+                candidate_pass = st.text_input("Admin password", type="password")
                 if st.button("Login as admin", use_container_width=True):
-                    if candidate == admin_password:
+                    if (
+                        candidate_user.strip() == admin_username
+                        and candidate_pass == admin_password
+                    ):
                         st.session_state["is_admin"] = True
                         st.rerun()
                     else:
-                        st.error("Incorrect password.")
+                        st.error("Incorrect admin credentials.")
         else:
             st.caption("Admin login not configured.")
         st.divider()
