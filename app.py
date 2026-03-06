@@ -44,12 +44,7 @@ st.markdown(
     }
     .ak-logo {
         width: min(220px, 100%);
-        height: 120px;
         margin-top: 18px;
-        background-color: var(--text-color);
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: contain;
     }
     .section-spacer { height: 12px; }
     div[data-testid="stHorizontalBlock"] { gap: 1rem; }
@@ -122,8 +117,7 @@ st.markdown(
 DATA_DIR = Path("data")
 PUBLISHED_DATA_FILE = DATA_DIR / "published_data.csv"
 PUBLISHED_META_FILE = DATA_DIR / "published_meta.json"
-HEADER_LOGO_LIGHT_FILE = Path("blacklogo.png")
-HEADER_LOGO_DARK_FILE = Path("whitelogo.png")
+HEADER_LOGO_FILE = Path("logo_sin_fondo.png")
 
 EXPECTED_COLS = [
     "Week",
@@ -382,29 +376,19 @@ def render_partner_card(title: str, description: str):
 
 
 def render_header_logo():
-    if not HEADER_LOGO_LIGHT_FILE.exists():
+    if not HEADER_LOGO_FILE.exists():
         return
 
-    logo_mask = base64.b64encode(HEADER_LOGO_LIGHT_FILE.read_bytes()).decode("ascii")
+    logo_data = base64.b64encode(HEADER_LOGO_FILE.read_bytes()).decode("ascii")
 
     st.markdown(
         f"""
         <div class="header-logo-wrap">
-            <div
+            <img
                 class="ak-logo"
-                role="img"
-                aria-label="AK Research and Development logo"
-                style="
-                    -webkit-mask-image: url('data:image/png;base64,{logo_mask}');
-                    mask-image: url('data:image/png;base64,{logo_mask}');
-                    -webkit-mask-repeat: no-repeat;
-                    mask-repeat: no-repeat;
-                    -webkit-mask-position: center;
-                    mask-position: center;
-                    -webkit-mask-size: contain;
-                    mask-size: contain;
-                "
-            ></div>
+                src="data:image/png;base64,{logo_data}"
+                alt="AK Research and Development logo"
+            />
         </div>
         """,
         unsafe_allow_html=True,
