@@ -13,7 +13,6 @@ import streamlit as st
 # -----------------------------
 st.set_page_config(
     page_title="Investmend Funds Nav",
-    page_icon="📊",
     layout="wide",
 )
 
@@ -36,6 +35,16 @@ st.markdown(
         opacity: 0.78;
         margin-top: 0;
         margin-bottom: 1rem;
+    }
+    .header-logo-wrap {
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+    }
+    .ak-logo {
+        width: min(220px, 100%);
+        color: var(--text-color);
+        margin-top: -4px;
     }
     .section-spacer { height: 12px; }
     div[data-testid="stHorizontalBlock"] { gap: 1rem; }
@@ -65,22 +74,17 @@ st.markdown(
         opacity: 0.62;
         margin-top: 6px;
     }
-    .pill {
-        display:inline-block;
-        padding: 6px 10px;
-        border-radius: 999px;
-        font-size: 0.8rem;
-        border: 1px solid rgba(128,128,128,0.28);
-        background: var(--secondary-background-color);
+    .partner-card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
         color: var(--text-color);
     }
-    .pill-wrap {
-        margin-top: 1.9rem;
-    }
-    @media (max-width: 900px) {
-        .pill-wrap {
-            margin-top: 0.35rem;
-        }
+    .partner-card-copy {
+        font-size: 0.82rem;
+        color: var(--text-color);
+        opacity: 0.68;
+        line-height: 1.45;
+        margin-top: 10px;
     }
     .empty-state {
         margin-top: 1.2rem;
@@ -183,15 +187,6 @@ def format_money(x) -> str:
         return f"${x:,.0f}"
     except Exception:
         return str(x)
-
-
-def format_published_at(iso_value: str) -> str:
-    if not iso_value:
-        return "—"
-    dt = pd.to_datetime(iso_value, errors="coerce", utc=True)
-    if pd.isna(dt):
-        return str(iso_value)
-    return dt.strftime("%Y-%m-%d %H:%M UTC")
 
 
 def normalize_fund_name(value) -> str:
@@ -367,8 +362,70 @@ def render_kpi(label: str, value, sub: str = ""):
     )
 
 
+def render_partner_card(title: str, description: str):
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+            <div class="partner-card-title">{title}</div>
+            <div class="partner-card-copy">{description}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_header_logo():
+    st.markdown(
+        """
+        <div class="header-logo-wrap" aria-hidden="true">
+            <svg class="ak-logo" viewBox="0 0 340 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <path id="ak-top-arc" d="M 57 170 A 113 113 0 0 1 283 170" />
+                    <path id="ak-bottom-arc" d="M 283 170 A 113 113 0 0 1 57 170" />
+                </defs>
+                <circle cx="170" cy="170" r="146" stroke="currentColor" stroke-width="12" />
+                <circle cx="170" cy="170" r="104" stroke="currentColor" stroke-width="10" />
+                <text fill="currentColor" font-size="25" font-weight="900" letter-spacing="1.6">
+                    <textPath href="#ak-top-arc" startOffset="50%" text-anchor="middle">
+                        RESEARCH &amp; DEVELOPMENT
+                    </textPath>
+                </text>
+                <text fill="currentColor" font-size="24" font-weight="900" letter-spacing="1.4">
+                    <textPath href="#ak-bottom-arc" startOffset="50%" text-anchor="middle">
+                        NEW YORK EST.2010
+                    </textPath>
+                </text>
+                <text
+                    x="170"
+                    y="208"
+                    fill="currentColor"
+                    font-size="118"
+                    font-weight="900"
+                    text-anchor="middle"
+                >
+                    AK
+                </text>
+            </svg>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_spacer():
     st.markdown('<div class="section-spacer"></div>', unsafe_allow_html=True)
+
+
+def format_table_column_name(name: str) -> str:
+    if name == "Fondo":
+        return "Fund"
+    if name == "Fecha Act":
+        return "Date"
+    if name == "CloseTrade_BRUTO":
+        return "CLOSE TRADE BRUTO"
+    if name.startswith("SumaDe"):
+        return name.replace("SumaDe", "", 1)
+    return name
 
 
 def is_truthy_param(value) -> bool:
@@ -396,7 +453,7 @@ def render_empty_state(
     st.markdown(
         f"""
         <div class="empty-state">
-            <div class="empty-title">📭 {title}</div>
+            <div class="empty-title">{title}</div>
             <p class="empty-sub">{subtitle}</p>
         </div>
         """,
@@ -423,11 +480,15 @@ if flash_message:
 # -----------------------------
 # UI - Header
 # -----------------------------
-st.markdown('<div class="title">📊 Investmend Funds Nav</div>', unsafe_allow_html=True)
-st.markdown(
-    '<div class="subtitle">Live public view of published fund NAV data.</div>',
-    unsafe_allow_html=True,
-)
+header_left, header_right = st.columns([3.4, 1])
+with header_left:
+    st.markdown('<div class="title">Investmend Funds Nav</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="subtitle">Live public view of published fund NAV data.</div>',
+        unsafe_allow_html=True,
+    )
+with header_right:
+    render_header_logo()
 
 
 # -----------------------------
@@ -445,7 +506,7 @@ publish_clicked = False
 
 with st.sidebar:
     if admin_panel_enabled:
-        st.header("🔐 Access")
+        st.header("Access")
         if admin_auth_enabled:
             if is_admin:
                 st.success("Admin mode enabled")
@@ -468,14 +529,14 @@ with st.sidebar:
             st.caption("Admin login not configured.")
         st.divider()
 
-    st.subheader("⚙️ Dashboard View")
+    st.subheader("Dashboard View")
     n_weeks = st.slider(
         "Weeks shown in charts", min_value=4, max_value=52, value=16, step=4
     )
 
     if can_upload:
         st.divider()
-        st.subheader("📥 Publish Data")
+        st.subheader("Publish Data")
         uploaded_files = st.file_uploader(
             "Upload one or more files (CSV / XLSX)",
             type=["csv", "xlsx", "xls"],
@@ -505,7 +566,7 @@ if can_upload and publish_clicked:
         st.rerun()
 
 if publish_errors:
-    with st.expander("⚠️ Files with publish errors"):
+    with st.expander("Files with publish errors"):
         for name, err in publish_errors:
             st.write(f"**{name}** → {err}")
 
@@ -513,7 +574,7 @@ if publish_errors:
 # -----------------------------
 # Load published dataset
 # -----------------------------
-all_df, published_meta = load_published_data()
+all_df, _published_meta = load_published_data()
 if all_df.empty:
     render_empty_state(
         can_upload=can_upload,
@@ -532,28 +593,7 @@ if latest_df.empty:
 # Top selector
 # -----------------------------
 funds = sorted(latest_df["Fondo"].unique().tolist())
-col_a, col_b, col_c = st.columns([2, 2, 2])
-with col_a:
-    selected_fund = st.selectbox("Fondo", funds, index=0)
-with col_b:
-    last_date = latest_df.loc[latest_df["Fondo"] == selected_fund, "Fecha Act"].iloc[0]
-    st.markdown(
-        f"<div class='pill-wrap'><span class='pill'>As of: <b>{last_date.date().isoformat()}</b></span></div>",
-        unsafe_allow_html=True,
-    )
-with col_c:
-    stamp = format_published_at(str(published_meta.get("published_at", "")))
-    if is_admin and published_meta.get("uploaded_files") is not None:
-        files_count = int(published_meta.get("uploaded_files", 0))
-        st.markdown(
-            f"<div class='pill-wrap'><span class='pill'>Updated: <b>{stamp}</b> · Files: <b>{files_count}</b></span></div>",
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f"<div class='pill-wrap'><span class='pill'>Updated: <b>{stamp}</b></span></div>",
-            unsafe_allow_html=True,
-        )
+selected_fund = st.selectbox("Fund", funds, index=0)
 
 selected_latest = latest_df[latest_df["Fondo"] == selected_fund].iloc[0]
 render_spacer()
@@ -598,12 +638,31 @@ with k6:
         format_money(selected_latest.get("CloseTrade_BRUTO")),
     )
 
+render_spacer()
+st.markdown("### Partners")
+p1, p2, p3 = st.columns(3)
+with p1:
+    render_partner_card(
+        "Contributions",
+        "Reserved for partner contribution data.",
+    )
+with p2:
+    render_partner_card(
+        "Withdraws",
+        "Reserved for partner withdrawal data.",
+    )
+with p3:
+    render_partner_card(
+        "Infographic",
+        "Reserved for the future partner infographic view.",
+    )
+
 st.divider()
 
 # -----------------------------
 # Latest week table
 # -----------------------------
-st.markdown("### 🧾 Latest Weekly Detail")
+st.markdown("### Latest Weekly Detail")
 table_cols = [
     "Fondo",
     "Week",
@@ -630,7 +689,7 @@ for col in [x for x in existing if x in NUMERIC_COLS]:
     pretty[col] = pretty[col].apply(lambda v: f"{v:,.0f}" if pd.notna(v) else "")
 
 st.dataframe(
-    pretty[existing].sort_values("Fondo"),
+    pretty[existing].sort_values("Fondo").rename(columns=format_table_column_name),
     use_container_width=True,
     hide_index=True,
 )
@@ -640,7 +699,7 @@ st.divider()
 # -----------------------------
 # Last N weeks trends (charts)
 # -----------------------------
-st.markdown("### 📈 Recent Trends")
+st.markdown("### Recent Trends")
 df_f = (
     all_df[all_df["Fondo"] == selected_fund]
     .dropna(subset=["Fecha Act"])
