@@ -117,6 +117,8 @@ st.markdown(
 DATA_DIR = Path("data")
 PUBLISHED_DATA_FILE = DATA_DIR / "published_data.csv"
 PUBLISHED_META_FILE = DATA_DIR / "published_meta.json"
+PUBLISHED_PARTNERS_FILE = DATA_DIR / "published_partners.csv"
+PUBLISHED_PARTNERS_META_FILE = DATA_DIR / "published_partners_meta.json"
 HEADER_LOGO_FILE = Path("logo_sin_fondo.png")
 
 EXPECTED_COLS = [
@@ -145,6 +147,32 @@ NUMERIC_COLS = [
     "SumaDeTRADING",
     "CloseTrade_BRUTO",
 ]
+
+PARTNER_COLS = [
+    "Date",
+    "Name",
+    "Surname",
+    "ID",
+    "Sterling",
+    "€",
+]
+
+PARTNER_COLUMN_ALIASES = {
+    "FECHA": "Date",
+    "DATE": "Date",
+    "NOMBRE": "Name",
+    "NAME": "Name",
+    "APELLIDOS": "Surname",
+    "SURNAME": "Surname",
+    "DNI": "ID",
+    "ID": "ID",
+    "STERLING": "Sterling",
+    "ID STERLING": "Sterling",
+    "CANTIDAD €": "€",
+    "CANTIDAD EURO": "€",
+    "€": "€",
+    "EUR": "€",
+}
 
 FUND_ALIASES = {
     "INS": "INSTITUTE",
@@ -193,6 +221,16 @@ def format_money(x) -> str:
 def normalize_fund_name(value) -> str:
     raw = str(value).strip().upper()
     return FUND_ALIASES.get(raw, raw)
+
+
+def normalize_partner_header(value) -> str:
+    return " ".join(str(value).replace("\xa0", " ").strip().split()).upper()
+
+
+def normalize_text_cell(value) -> str:
+    if pd.isna(value):
+        return ""
+    return " ".join(str(value).strip().split())
 
 
 def normalize_df(df: pd.DataFrame, source_name: str) -> pd.DataFrame:
@@ -265,6 +303,45 @@ def clean_all_df(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def normalize_partners_df(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    renamed_cols = []
+    recognized_cols = 0
+
+    for col in out.columns:
+        mapped = PARTNER_COLUMN_ALIASES.get(normalize_partner_header(col))
+        if mapped:
+            recognized_cols += 1
+            renamed_cols.append(mapped)
+        else:
+            renamed_cols.append(" ".join(str(col).replace("\xa0", " ").strip().split()))
+
+    out.columns = renamed_cols
+
+    if recognized_cols == 0:
+        raise ValueError("Partner file does not contain the expected columns.")
+
+    normalized = pd.DataFrame()
+    for col in PARTNER_COLS:
+        normalized[col] = out[col] if col in out.columns else pd.NA
+
+    date_values = normalized["Date"].apply(normalize_text_cell).replace("", pd.NA)
+    date_values = date_values.where(
+        ~date_values.fillna("").str.upper().str.startswith("AÑO"),
+        pd.NA,
+    )
+    normalized["Date"] = pd.to_datetime(date_values, errors="coerce")
+
+    for col in ["Name", "Surname", "ID", "Sterling"]:
+        normalized[col] = normalized[col].apply(normalize_text_cell).replace("", pd.NA)
+
+    normalized["€"] = pd.to_numeric(normalized["€"], errors="coerce")
+    normalized = normalized.dropna(subset=["Date"])
+    normalized = normalized[normalized[["Name", "Surname", "ID", "Sterling", "€"]].notna().any(axis=1)]
+
+    return normalized
+
+
 @st.cache_data(show_spinner=False)
 def read_any_file(file) -> pd.DataFrame:
     name = getattr(file, "name", "uploaded_file")
@@ -280,6 +357,25 @@ def read_any_file(file) -> pd.DataFrame:
         except Exception:
             df = pd.read_csv(file, sep=";")
         return normalize_df(df, name)
+
+    raise ValueError(f"Unsupported file format: {suffix}")
+
+
+@st.cache_data(show_spinner=False)
+def read_any_partner_file(file) -> pd.DataFrame:
+    name = getattr(file, "name", "uploaded_file")
+    suffix = Path(name).suffix.lower()
+
+    if suffix in [".xlsx", ".xls"]:
+        df = pd.read_excel(file, sheet_name=0)
+        return normalize_partners_df(df)
+
+    if suffix == ".csv":
+        try:
+            df = pd.read_csv(file)
+        except Exception:
+            df = pd.read_csv(file, sep=";")
+        return normalize_partners_df(df)
 
     raise ValueError(f"Unsupported file format: {suffix}")
 
@@ -301,6 +397,23 @@ def parse_uploaded_files(uploaded_files) -> Tuple[pd.DataFrame, List[Tuple[str, 
     return merged, errors
 
 
+def parse_partner_files(uploaded_files) -> Tuple[pd.DataFrame, List[Tuple[str, str]]]:
+    dfs: List[pd.DataFrame] = []
+    errors: List[Tuple[str, str]] = []
+    for file in uploaded_files:
+        try:
+            dfs.append(read_any_partner_file(file))
+        except Exception as exc:
+            errors.append((getattr(file, "name", "file"), str(exc)))
+
+    if not dfs:
+        return pd.DataFrame(), errors
+
+    merged = pd.concat(dfs, ignore_index=True)
+    merged = normalize_partners_df(merged)
+    return merged, errors
+
+
 def save_published_data(df: pd.DataFrame, uploaded_count: int) -> None:
     clean_df = clean_all_df(df)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -313,6 +426,21 @@ def save_published_data(df: pd.DataFrame, uploaded_count: int) -> None:
         "uploaded_files": int(uploaded_count),
     }
     PUBLISHED_META_FILE.write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def save_published_partners(df: pd.DataFrame, uploaded_count: int) -> None:
+    clean_df = normalize_partners_df(df)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    clean_df.to_csv(PUBLISHED_PARTNERS_FILE, index=False)
+
+    meta = {
+        "published_at": datetime.now(timezone.utc).isoformat(),
+        "rows": int(len(clean_df)),
+        "uploaded_files": int(uploaded_count),
+    }
+    PUBLISHED_PARTNERS_META_FILE.write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
@@ -334,6 +462,26 @@ def load_published_data() -> Tuple[pd.DataFrame, Dict]:
             meta = {}
 
     data = clean_all_df(data)
+    return data, meta
+
+
+def load_published_partners() -> Tuple[pd.DataFrame, Dict]:
+    if not PUBLISHED_PARTNERS_FILE.exists():
+        return pd.DataFrame(), {}
+
+    try:
+        data = pd.read_csv(PUBLISHED_PARTNERS_FILE)
+    except Exception:
+        return pd.DataFrame(), {}
+
+    meta: Dict = {}
+    if PUBLISHED_PARTNERS_META_FILE.exists():
+        try:
+            meta = json.loads(PUBLISHED_PARTNERS_META_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            meta = {}
+
+    data = normalize_partners_df(data)
     return data, meta
 
 
@@ -423,7 +571,7 @@ def render_empty_state(
     if can_upload:
         title = "No published data yet"
         subtitle = (
-            "Upload your CSV/XLSX files from the sidebar and click 'Publish dataset'. "
+            "Upload your fund files from the sidebar and click 'Publish fund dataset'. "
             "After publishing, viewers will see the dashboard automatically."
         )
     else:
@@ -484,8 +632,10 @@ is_admin = st.session_state.get("is_admin", False)
 admin_panel_enabled = is_truthy_param(st.query_params.get("admin", "0"))
 can_upload = is_admin and admin_panel_enabled
 
-uploaded_files = []
-publish_clicked = False
+fund_uploaded_files = []
+partners_uploaded_files = []
+fund_publish_clicked = False
+partners_publish_clicked = False
 
 with st.sidebar:
     if admin_panel_enabled:
@@ -519,16 +669,30 @@ with st.sidebar:
 
     if can_upload:
         st.divider()
-        st.subheader("Publish Data")
-        uploaded_files = st.file_uploader(
-            "Upload one or more files (CSV / XLSX)",
+        st.subheader("Publish Fund Data")
+        fund_uploaded_files = st.file_uploader(
+            "Upload one or more fund files (CSV / XLSX)",
             type=["csv", "xlsx", "xls"],
             accept_multiple_files=True,
-            key="publish_uploader",
+            key="fund_publish_uploader",
         )
-        publish_clicked = st.button(
-            "Publish dataset",
-            disabled=not uploaded_files,
+        fund_publish_clicked = st.button(
+            "Publish fund dataset",
+            disabled=not fund_uploaded_files,
+            use_container_width=True,
+        )
+
+        st.divider()
+        st.subheader("Publish Partners Data")
+        partners_uploaded_files = st.file_uploader(
+            "Upload one or more partner files (CSV / XLSX)",
+            type=["csv", "xlsx", "xls"],
+            accept_multiple_files=True,
+            key="partners_publish_uploader",
+        )
+        partners_publish_clicked = st.button(
+            "Publish partners dataset",
+            disabled=not partners_uploaded_files,
             use_container_width=True,
         )
 
@@ -536,21 +700,39 @@ with st.sidebar:
 # -----------------------------
 # Publish flow (admin only)
 # -----------------------------
-publish_errors: List[Tuple[str, str]] = []
-if can_upload and publish_clicked:
-    fresh_df, publish_errors = parse_uploaded_files(uploaded_files)
+fund_publish_errors: List[Tuple[str, str]] = []
+partner_publish_errors: List[Tuple[str, str]] = []
+
+if can_upload and fund_publish_clicked:
+    fresh_df, fund_publish_errors = parse_uploaded_files(fund_uploaded_files)
     if fresh_df.empty:
-        st.error("Publish failed: no valid rows were found in the uploaded files.")
+        st.error("Fund publish failed: no valid rows were found in the uploaded files.")
     else:
-        save_published_data(fresh_df, len(uploaded_files))
+        save_published_data(fresh_df, len(fund_uploaded_files))
         st.session_state["flash_message"] = (
-            f"Data published successfully ({len(fresh_df)} rows)."
+            f"Fund data published successfully ({len(fresh_df)} rows)."
         )
         st.rerun()
 
-if publish_errors:
-    with st.expander("Files with publish errors"):
-        for name, err in publish_errors:
+if can_upload and partners_publish_clicked:
+    fresh_partners_df, partner_publish_errors = parse_partner_files(partners_uploaded_files)
+    if fresh_partners_df.empty:
+        st.error("Partners publish failed: no valid rows were found in the uploaded files.")
+    else:
+        save_published_partners(fresh_partners_df, len(partners_uploaded_files))
+        st.session_state["flash_message"] = (
+            f"Partners data published successfully ({len(fresh_partners_df)} rows)."
+        )
+        st.rerun()
+
+if fund_publish_errors:
+    with st.expander("Files with fund publish errors"):
+        for name, err in fund_publish_errors:
+            st.write(f"**{name}** → {err}")
+
+if partner_publish_errors:
+    with st.expander("Files with partner publish errors"):
+        for name, err in partner_publish_errors:
             st.write(f"**{name}** → {err}")
 
 
@@ -558,6 +740,7 @@ if publish_errors:
 # Load published dataset
 # -----------------------------
 all_df, _published_meta = load_published_data()
+partners_df, _partners_meta = load_published_partners()
 if all_df.empty:
     render_empty_state(
         can_upload=can_upload,
@@ -638,6 +821,28 @@ with p3:
     render_partner_card(
         "Infographic",
         "Reserved for the future partner infographic view.",
+    )
+
+render_spacer()
+if partners_df.empty:
+    st.info("No partner data published yet.")
+else:
+    partners_pretty = partners_df.copy().sort_values(
+        ["Date", "Surname", "Name"],
+        ascending=[False, True, True],
+    )
+    partners_pretty["Date"] = pd.to_datetime(
+        partners_pretty["Date"], errors="coerce"
+    ).dt.strftime("%Y-%m-%d")
+    for col in ["Name", "Surname", "ID", "Sterling"]:
+        partners_pretty[col] = partners_pretty[col].fillna("")
+    partners_pretty["€"] = partners_pretty["€"].apply(
+        lambda v: f"{v:,.0f}" if pd.notna(v) else ""
+    )
+    st.dataframe(
+        partners_pretty[PARTNER_COLS],
+        use_container_width=True,
+        hide_index=True,
     )
 
 st.divider()
