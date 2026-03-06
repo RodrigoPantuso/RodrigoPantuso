@@ -43,8 +43,7 @@ st.markdown(
     }
     .ak-logo {
         width: min(220px, 100%);
-        color: var(--text-color);
-        margin-top: -4px;
+        margin-top: 18px;
     }
     .section-spacer { height: 12px; }
     div[data-testid="stHorizontalBlock"] { gap: 1rem; }
@@ -380,26 +379,40 @@ def render_header_logo():
         <div class="header-logo-wrap" aria-hidden="true">
             <svg class="ak-logo" viewBox="0 0 340 340" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                    <path id="ak-top-arc" d="M 57 170 A 113 113 0 0 1 283 170" />
-                    <path id="ak-bottom-arc" d="M 283 170 A 113 113 0 0 1 57 170" />
+                    <path id="ak-top-arc" d="M 62 170 A 108 108 0 0 1 278 170" />
+                    <path id="ak-bottom-arc" d="M 278 170 A 108 108 0 0 1 62 170" />
                 </defs>
-                <circle cx="170" cy="170" r="146" stroke="currentColor" stroke-width="12" />
-                <circle cx="170" cy="170" r="104" stroke="currentColor" stroke-width="10" />
-                <text fill="currentColor" font-size="25" font-weight="900" letter-spacing="1.6">
+                <circle cx="170" cy="170" r="152" fill="#f1f1f1" />
+                <circle cx="170" cy="170" r="146" fill="#ffffff" stroke="#000000" stroke-width="12" />
+                <circle cx="170" cy="170" r="104" fill="#ffffff" stroke="#000000" stroke-width="10" />
+                <text
+                    fill="#000000"
+                    font-family="Arial Black, Arial, sans-serif"
+                    font-size="26"
+                    font-weight="900"
+                    letter-spacing="0.8"
+                >
                     <textPath href="#ak-top-arc" startOffset="50%" text-anchor="middle">
                         RESEARCH &amp; DEVELOPMENT
                     </textPath>
                 </text>
-                <text fill="currentColor" font-size="24" font-weight="900" letter-spacing="1.4">
+                <text
+                    fill="#000000"
+                    font-family="Arial Black, Arial, sans-serif"
+                    font-size="24"
+                    font-weight="900"
+                    letter-spacing="0.6"
+                >
                     <textPath href="#ak-bottom-arc" startOffset="50%" text-anchor="middle">
                         NEW YORK EST.2010
                     </textPath>
                 </text>
                 <text
                     x="170"
-                    y="208"
-                    fill="currentColor"
-                    font-size="118"
+                    y="216"
+                    fill="#000000"
+                    font-family="Arial Black, Arial, sans-serif"
+                    font-size="120"
                     font-weight="900"
                     text-anchor="middle"
                 >
