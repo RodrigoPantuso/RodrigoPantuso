@@ -606,17 +606,17 @@ st.markdown("### Fund Snapshot")
 k1, k2, k3 = st.columns(3)
 with k1:
     render_kpi(
-        "SumaDeBEGINNER NAV",
+        format_table_column_name("SumaDeBEGINNER NAV"),
         format_money(selected_latest.get("SumaDeBEGINNER NAV")),
     )
 with k2:
     render_kpi(
-        "SumaDeNET LIQUID VALUE",
+        format_table_column_name("SumaDeNET LIQUID VALUE"),
         format_money(selected_latest.get("SumaDeNET LIQUID VALUE")),
     )
 with k3:
     render_kpi(
-        "SumaDeCASH NAV",
+        format_table_column_name("SumaDeCASH NAV"),
         format_money(selected_latest.get("SumaDeCASH NAV")),
     )
 
@@ -624,17 +624,17 @@ render_spacer()
 k4, k5, k6 = st.columns(3)
 with k4:
     render_kpi(
-        "SumaDeCLOSE TRADE",
+        format_table_column_name("SumaDeCLOSE TRADE"),
         format_money(selected_latest.get("SumaDeCLOSE TRADE")),
     )
 with k5:
     render_kpi(
-        "SumaDeFREE CASH",
+        format_table_column_name("SumaDeFREE CASH"),
         format_money(selected_latest.get("SumaDeFREE CASH")),
     )
 with k6:
     render_kpi(
-        "CloseTrade_BRUTO",
+        format_table_column_name("CloseTrade_BRUTO"),
         format_money(selected_latest.get("CloseTrade_BRUTO")),
     )
 
