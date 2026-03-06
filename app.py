@@ -44,7 +44,12 @@ st.markdown(
     }
     .ak-logo {
         width: min(220px, 100%);
+        height: 120px;
         margin-top: 18px;
+        background-color: var(--text-color);
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
     }
     .section-spacer { height: 12px; }
     div[data-testid="stHorizontalBlock"] { gap: 1rem; }
@@ -377,64 +382,29 @@ def render_partner_card(title: str, description: str):
 
 
 def render_header_logo():
-    light_logo = ""
-    dark_logo = ""
-
-    if HEADER_LOGO_LIGHT_FILE.exists():
-        light_logo = base64.b64encode(HEADER_LOGO_LIGHT_FILE.read_bytes()).decode("ascii")
-    if HEADER_LOGO_DARK_FILE.exists():
-        dark_logo = base64.b64encode(HEADER_LOGO_DARK_FILE.read_bytes()).decode("ascii")
-
-    if not light_logo and not dark_logo:
+    if not HEADER_LOGO_LIGHT_FILE.exists():
         return
 
-    theme_type = getattr(st.context.theme, "type", None)
-    selected_logo = ""
-
-    if theme_type == "light" and light_logo:
-        selected_logo = light_logo
-    elif theme_type == "dark" and dark_logo:
-        selected_logo = dark_logo
-
-    if selected_logo:
-        st.markdown(
-            f"""
-            <div class="header-logo-wrap">
-                <img
-                    class="ak-logo"
-                    src="data:image/png;base64,{selected_logo}"
-                    alt="AK Research and Development logo"
-                />
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return
-
-    fallback_logo = light_logo or dark_logo
-    dark_source = (
-        f'<source srcset="data:image/png;base64,{dark_logo}" media="(prefers-color-scheme: dark)" />'
-        if dark_logo
-        else ""
-    )
-    light_source = (
-        f'<source srcset="data:image/png;base64,{light_logo}" media="(prefers-color-scheme: light)" />'
-        if light_logo
-        else ""
-    )
+    logo_mask = base64.b64encode(HEADER_LOGO_LIGHT_FILE.read_bytes()).decode("ascii")
 
     st.markdown(
         f"""
         <div class="header-logo-wrap">
-            <picture>
-                {dark_source}
-                {light_source}
-                <img
-                    class="ak-logo"
-                    src="data:image/png;base64,{fallback_logo}"
-                    alt="AK Research and Development logo"
-                />
-            </picture>
+            <div
+                class="ak-logo"
+                role="img"
+                aria-label="AK Research and Development logo"
+                style="
+                    -webkit-mask-image: url('data:image/png;base64,{logo_mask}');
+                    mask-image: url('data:image/png;base64,{logo_mask}');
+                    -webkit-mask-repeat: no-repeat;
+                    mask-repeat: no-repeat;
+                    -webkit-mask-position: center;
+                    mask-position: center;
+                    -webkit-mask-size: contain;
+                    mask-size: contain;
+                "
+            ></div>
         </div>
         """,
         unsafe_allow_html=True,
