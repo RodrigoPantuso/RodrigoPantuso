@@ -117,7 +117,8 @@ st.markdown(
 DATA_DIR = Path("data")
 PUBLISHED_DATA_FILE = DATA_DIR / "published_data.csv"
 PUBLISHED_META_FILE = DATA_DIR / "published_meta.json"
-HEADER_LOGO_FILE = Path("LOGO AK R&D.png")
+HEADER_LOGO_LIGHT_FILE = Path("LOGO AK R&D.png")
+HEADER_LOGO_DARK_FILE = Path("logo_ak_rd_negative.png")
 
 EXPECTED_COLS = [
     "Week",
@@ -376,18 +377,41 @@ def render_partner_card(title: str, description: str):
 
 
 def render_header_logo():
-    if not HEADER_LOGO_FILE.exists():
+    light_logo = ""
+    dark_logo = ""
+
+    if HEADER_LOGO_LIGHT_FILE.exists():
+        light_logo = base64.b64encode(HEADER_LOGO_LIGHT_FILE.read_bytes()).decode("ascii")
+    if HEADER_LOGO_DARK_FILE.exists():
+        dark_logo = base64.b64encode(HEADER_LOGO_DARK_FILE.read_bytes()).decode("ascii")
+
+    if not light_logo and not dark_logo:
         return
 
-    logo_data = base64.b64encode(HEADER_LOGO_FILE.read_bytes()).decode("ascii")
+    fallback_logo = light_logo or dark_logo
+    dark_source = (
+        f'<source srcset="data:image/png;base64,{dark_logo}" media="(prefers-color-scheme: dark)" />'
+        if dark_logo
+        else ""
+    )
+    light_source = (
+        f'<source srcset="data:image/png;base64,{light_logo}" media="(prefers-color-scheme: light)" />'
+        if light_logo
+        else ""
+    )
+
     st.markdown(
         f"""
         <div class="header-logo-wrap">
-            <img
-                class="ak-logo"
-                src="data:image/png;base64,{logo_data}"
-                alt="AK Research and Development logo"
-            />
+            <picture>
+                {dark_source}
+                {light_source}
+                <img
+                    class="ak-logo"
+                    src="data:image/png;base64,{fallback_logo}"
+                    alt="AK Research and Development logo"
+                />
+            </picture>
         </div>
         """,
         unsafe_allow_html=True,
