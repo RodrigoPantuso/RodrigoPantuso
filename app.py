@@ -117,8 +117,8 @@ st.markdown(
 DATA_DIR = Path("data")
 PUBLISHED_DATA_FILE = DATA_DIR / "published_data.csv"
 PUBLISHED_META_FILE = DATA_DIR / "published_meta.json"
-HEADER_LOGO_LIGHT_FILE = Path("LOGO AK R&D.png")
-HEADER_LOGO_DARK_FILE = Path("logo_ak_rd_negative.png")
+HEADER_LOGO_LIGHT_FILE = Path("blacklogo.png")
+HEADER_LOGO_DARK_FILE = Path("whitelogo.png")
 
 EXPECTED_COLS = [
     "Week",
@@ -386,6 +386,29 @@ def render_header_logo():
         dark_logo = base64.b64encode(HEADER_LOGO_DARK_FILE.read_bytes()).decode("ascii")
 
     if not light_logo and not dark_logo:
+        return
+
+    theme_type = getattr(st.context.theme, "type", None)
+    selected_logo = ""
+
+    if theme_type == "light" and light_logo:
+        selected_logo = light_logo
+    elif theme_type == "dark" and dark_logo:
+        selected_logo = dark_logo
+
+    if selected_logo:
+        st.markdown(
+            f"""
+            <div class="header-logo-wrap">
+                <img
+                    class="ak-logo"
+                    src="data:image/png;base64,{selected_logo}"
+                    alt="AK Research and Development logo"
+                />
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         return
 
     fallback_logo = light_logo or dark_logo
